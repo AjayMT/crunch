@@ -1,9 +1,10 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdint.h>
 
 #include "crunch.h"
-#include "khash.h"
+#include "crunch_set.c"
 
 
 static size_t malloc_count = 0;
