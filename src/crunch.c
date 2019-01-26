@@ -1,20 +1,37 @@
 
-#include <stdio.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 #include "crunch.h"
+#include "khash.h"
+
+
+static size_t malloc_count = 0;
+static size_t free_count = 0;
+
+
+void crunch_init()
+{}
+
+
+void crunch_finish()
+{
+  printf("%lu calls to malloc\n", malloc_count);
+  printf("%lu calls to free\n", free_count);
+}
 
 
 void *crunch_malloc(size_t size)
 {
-  fprintf(stderr, "allocating %lu bytes\n", size);
-  return malloc(size);
+  ++malloc_count;
+  void *ptr = malloc(size);
+  return ptr;
 }
 
 
 void crunch_free(void *ptr)
 {
-  fprintf(stderr, "free");
+  ++free_count;
   free(ptr);
 }
 
