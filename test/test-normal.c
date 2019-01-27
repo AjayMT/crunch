@@ -7,7 +7,7 @@ int main(int argc, char *argv[])
 {
   int *n = malloc(sizeof(int));
   *n = 12;
+  printf("test-normal %p\n", n);
   free(n);
-  printf("test-normal exit\n");
   return 0;
 }

@@ -5,8 +5,12 @@
 
 int main(int argc, char *argv[])
 {
-  int *n = malloc(sizeof(int));
+  printf("test-leak begin\n");
+  int *n = malloc(13);
   *n = 12;
-  printf("test-leak exit\n");
+  /* int *j = malloc(20); */
+  /* int *k = malloc(45); */
+  /* int *l = malloc(72); */
+  printf("test-leak end\n");
   return 0;
 }
