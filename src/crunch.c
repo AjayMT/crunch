@@ -19,15 +19,12 @@ void crunch_init()
 void crunch_finish()
 {
   fprintf(stderr, "\n=== crunch ===\n");
-  fprintf(stderr, "put: %d del: %d\n", put_count, delete_count);
-  fprintf(stderr, "remaining heap allocations: %llu\n", runtime_memory_set.count);
-
-  crunch_block_t *end = crunch_set_end(runtime_memory_set);
-  crunch_block_t *begin = crunch_set_begin(runtime_memory_set);
-  for (crunch_block_t *current = begin;
-       current != end;
-       current = crunch_set_next(runtime_memory_set, current))
-    fprintf(stderr, "  %p : %lu bytes\n", (void *)(current->ptr), current->size);
+  fprintf(stderr, "%llu remaining heap allocations:\n", runtime_memory_set.count);
+  for (uint64_t index = 0; index < runtime_memory_set.capacity; ++index) {
+    crunch_block_t block = runtime_memory_set.blocks[index];
+    if (block.ptr == 0) continue;
+    fprintf(stderr, "  %p : %lu bytes\n", (void *)block.ptr, block.size);
+  }
 
   crunch_set_destroy(&runtime_memory_set);
 }
