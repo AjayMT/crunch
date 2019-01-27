@@ -4,8 +4,6 @@ import subprocess
 import sys
 import os
 import shutil
-import pip
-import importlib
 
 
 def main():
