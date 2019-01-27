@@ -14,4 +14,8 @@ void *crunch_malloc(size_t);
 void crunch_free(void*);
 
 
+DYLD_INTERPOSE(crunch_malloc, malloc);
+DYLD_INTERPOSE(crunch_free, free);
+
+
 #endif /* _CRUNCH_H_ */

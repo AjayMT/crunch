@@ -46,7 +46,3 @@ void crunch_free(void *ptr)
   crunch_set_delete(&runtime_memory_set, (uintptr_t)ptr);
   free(ptr);
 }
-
-
-DYLD_INTERPOSE(crunch_malloc, malloc);
-DYLD_INTERPOSE(crunch_free, free);
