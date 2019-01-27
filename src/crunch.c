@@ -13,15 +13,13 @@ static crunch_set_t runtime_memory_set;
 void crunch_init()
 {
   crunch_set_init(&runtime_memory_set);
-
-  // FIXME
-  --runtime_memory_set.count;
 }
 
 
 void crunch_finish()
 {
   fprintf(stderr, "\n=== crunch ===\n");
+  fprintf(stderr, "put: %d del: %d\n", put_count, delete_count);
   fprintf(stderr, "remaining heap allocations: %llu\n", runtime_memory_set.count);
 
   crunch_block_t *end = crunch_set_end(runtime_memory_set);
@@ -31,7 +29,7 @@ void crunch_finish()
        current = crunch_set_next(runtime_memory_set, current))
     fprintf(stderr, "  %p : %lu bytes\n", (void *)(current->ptr), current->size);
 
-  crunch_set_destroy(runtime_memory_set);
+  crunch_set_destroy(&runtime_memory_set);
 }
 
 

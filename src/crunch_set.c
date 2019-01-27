@@ -7,6 +7,10 @@ static const uint64_t initial_set_capacity = 0xffffff;
 static const float set_growth_factor = 1.5;
 
 
+static int put_count = 0;
+static int delete_count = 0;
+
+
 typedef struct {
   uintptr_t ptr;
   size_t size;
@@ -21,7 +25,7 @@ typedef struct {
 
 
 void crunch_set_init(crunch_set_t*);
-void crunch_set_destroy(crunch_set_t);
+void crunch_set_destroy(crunch_set_t*);
 void crunch_set_put(crunch_set_t*, uintptr_t, size_t);
 size_t crunch_set_get(crunch_set_t, uintptr_t);
 void crunch_set_delete(crunch_set_t*, uintptr_t);
@@ -35,21 +39,25 @@ static void crunch_set_grow(crunch_set_t*);
 
 void crunch_set_init(crunch_set_t *set)
 {
+  set->capacity = 0;
+  set->blocks = calloc(initial_set_capacity, sizeof(crunch_block_t));
   set->count = 0;
   set->capacity = initial_set_capacity;
-  set->blocks = calloc(initial_set_capacity, sizeof(crunch_block_t));
 }
 
 
-void crunch_set_destroy(crunch_set_t set)
+void crunch_set_destroy(crunch_set_t *set)
 {
-  free(set.blocks);
+  set->capacity = 0;
+  set->count = 0;
+  free(set->blocks);
 }
 
 
 void crunch_set_put(crunch_set_t *set, uintptr_t ptr, size_t size)
 {
-  if (set == NULL || set->blocks == NULL || ptr == 0 || size == 0) return;
+  if (set == NULL || set->blocks == NULL || set->capacity == 0 || ptr == 0 || size == 0)
+    return;
 
   if (set->count == set->capacity)
     crunch_set_grow(set);
@@ -61,6 +69,7 @@ void crunch_set_put(crunch_set_t *set, uintptr_t ptr, size_t size)
   block->ptr = ptr;
   block->size = size;
   ++(set->count);
+  ++put_count;
 }
 
 
@@ -82,6 +91,7 @@ void crunch_set_delete(crunch_set_t *set, uintptr_t ptr)
   block->ptr = 0;
   block->size = 0;
   --(set->count);
+  ++delete_count;
 }
 
 
