@@ -11,7 +11,7 @@ def main():
     make = check_req('make', 'GNU Make', ['make', '--version'])
     gcc = check_req('gcc', '', ['gcc', '--version'])
 
-    print('Building crunch...')
+    print('Building crunch...\n')
     subprocess.run(make, env={'GCC': gcc})
 
     print('\nInstalling crunch...')
@@ -30,7 +30,7 @@ def check_req(name, prefix, cmd):
         return check_req(name, prefix, [alt] + cmd[1:])
 
     print(f'{name} found.')
-    return name
+    return cmd[0]
 
 
 def install(install_prefix, symlink_prefix):
