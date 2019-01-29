@@ -3,12 +3,14 @@
 """
 Crunch: the memory profiling tool.
 
-Usage: crunch [options] <program>
+Usage: crunch [options] <program> [<arguments>...]
 
 Options:
   --help, -h       Print this help message
   --version        Print version number
   --no-dump, -n    Don't dump heap contents on exit
+  -i <file>        Redirect <file> to program's stdin
+  -o <file>        Redirect program's stdout to <file>
 """
 
 import sys
@@ -29,7 +31,14 @@ out_flag_name = 'CRUNCH_DUMP_HEAP'
 def main(args):
     dylib_path = os.path.join(sys.path[0], dylib_name)
     out_path = os.path.join(os.getcwd(), out_name)
+    stdin = None
+    stdout = None
 
+    if args['-i']:
+        stdin = open(args['-i']).read()
+
+    if args['-o']:
+        stdout = open(args['-o'], 'w')
 
     prog_env = os.environ.copy()
     prog_env[dyld_var] = dylib_path
@@ -44,7 +53,12 @@ def main(args):
 
         os.makedirs(out_path)
 
-    subprocess.run(args['<program>'], env=prog_env)
+    subprocess.run(
+        [args['<program>']] + args['<arguments>'],
+        env=prog_env,
+        stdin=stdin,
+        stdout=stdout
+    )
 
 
 if __name__ == '__main__':
