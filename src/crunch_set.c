@@ -1,4 +1,8 @@
 
+#ifndef _CRUNCH_SET_C_
+#define _CRUNCH_SET_C_
+
+
 #include <stdlib.h>
 #include <stdint.h>
 
@@ -88,7 +92,6 @@ void crunch_set_delete(crunch_set_t *set, uintptr_t ptr)
 static uint64_t crunch_hash_ptr(uint64_t cap, uintptr_t ptr)
 {
   return (uint64_t)(((__uint128_t)ptr * (__uint128_t)cap) >> 64);
-  // return ptr % set.capacity;
 }
 
 
@@ -125,3 +128,6 @@ static void crunch_set_grow(crunch_set_t *set)
 
   free(old_blocks);
 }
+
+
+#endif /* _CRUNCH_SET_C_ */
