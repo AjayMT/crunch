@@ -9,8 +9,8 @@ Options:
   --help, -h       Print this help message
   --version        Print version number
   --no-dump, -n    Don't dump heap contents on exit
-  -i <file>        Redirect <file> to program's stdin
-  -o <file>        Redirect program's stdout to <file>
+  -i <file>        Pipe <file> to program's stdin
+  -o <file>        Write program's stdout to <file>
 """
 
 import sys
@@ -35,7 +35,7 @@ def main(args):
     stdout = None
 
     if args['-i']:
-        stdin = open(args['-i']).read()
+        stdin = open(args['-i'])
 
     if args['-o']:
         stdout = open(args['-o'], 'w')
