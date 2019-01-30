@@ -52,16 +52,19 @@ void crunch_set_destroy(crunch_set_t *set)
 
 void crunch_set_put(crunch_set_t *set, uintptr_t ptr, size_t size)
 {
-  if (set == NULL || set->blocks == NULL || set->capacity == 0 || ptr == 0 || size == 0)
+  if (
+    set == NULL || set->blocks == NULL || set->capacity == 0
+    || ptr == 0 || size == 0
+    )
     return;
 
   if (set->count == set->capacity)
     crunch_set_grow(set);
 
   uint64_t index = crunch_hash_ptr(set->capacity, ptr);
-  crunch_block_t *block = (set->blocks) + index;
-  for (; block->ptr != 0; ++block);
+  for (; set->blocks[index].ptr != 0; index = (index + 1) % set->capacity);
 
+  crunch_block_t *block = (set->blocks) + index;
   block->ptr = ptr;
   block->size = size;
   ++(set->count);
@@ -100,13 +103,16 @@ static crunch_block_t *crunch_set_at(crunch_set_t set, uintptr_t ptr)
   if (set.blocks == NULL || set.count == 0 || ptr == 0) return NULL;
 
   uint64_t index = crunch_hash_ptr(set.capacity, ptr);
-  crunch_block_t *block = set.blocks + index;
+  uint64_t init = index;
 
-  for (; block->ptr != ptr; ++block)
-    if (block - set.blocks >= set.capacity)
-      return NULL;
+  do {
+    if (set.blocks[index].ptr == ptr)
+      return (set.blocks + index);
 
-  return block;
+    index = (index + 1) % set.capacity;
+  } while (index != init);
+
+  return NULL;
 }
 
 
