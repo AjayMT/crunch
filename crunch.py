@@ -10,7 +10,7 @@ Options:
   --version        Print version number
   --no-dump, -n    Don't dump heap contents on exit
   -i <file>        Pipe <file> to program's stdin
-  -o <file>        Write program's stdout to <file>
+  -o <file>        Pipe program's stdout to <file>
 """
 
 import sys

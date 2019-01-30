@@ -62,7 +62,8 @@ void crunch_set_put(crunch_set_t *set, uintptr_t ptr, size_t size)
     crunch_set_grow(set);
 
   uint64_t index = crunch_hash_ptr(set->capacity, ptr);
-  for (; set->blocks[index].ptr != 0; index = (index + 1) % set->capacity);
+  for (; set->blocks[index].ptr != 0; ++index)
+    if (index == set->capacity) index = 0;
 
   crunch_block_t *block = (set->blocks) + index;
   block->ptr = ptr;
@@ -109,7 +110,8 @@ static crunch_block_t *crunch_set_at(crunch_set_t set, uintptr_t ptr)
     if (set.blocks[index].ptr == ptr)
       return (set.blocks + index);
 
-    index = (index + 1) % set.capacity;
+    ++index;
+    if (index == set.capacity) index = 0;
   } while (index != init);
 
   return NULL;
