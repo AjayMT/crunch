@@ -6,14 +6,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
-#include <string.h>
+#include <pthread.h>
 
 #include "crunch_set.c"
-
-
-#define DYLD_INTERPOSE(_replacement,_replacee)                          \
-  __attribute__((used)) static struct{ const void* replacement; const void* replacee; } _interpose_##_replacee \
-  __attribute__ ((section ("__DATA,__interpose"))) = { (const void*)(unsigned long)&_replacement, (const void*)(unsigned long)&_replacee };
 
 
 void crunch_init() __attribute__((constructor));
@@ -23,16 +18,14 @@ void *crunch_malloc(size_t);
 void crunch_free(void*);
 
 
-DYLD_INTERPOSE(crunch_malloc, malloc);
-DYLD_INTERPOSE(crunch_free, free);
-
-
-static crunch_set_t malloc_set;
+crunch_set_t malloc_set;
+pthread_mutex_t malloc_mutex;
 
 
 void crunch_init()
 {
   crunch_set_init(&malloc_set);
+  pthread_mutex_init(&malloc_mutex, NULL);
 }
 
 
@@ -50,12 +43,13 @@ void crunch_finish()
     crunch_dump_heap();
 
   crunch_set_destroy(&malloc_set);
+  pthread_mutex_destroy(&malloc_mutex);
 }
 
 
 void crunch_dump_heap()
 {
-  fprintf(stderr, "\ndumping heap... "); fflush(stderr);
+  fprintf(stderr, "\ndumping heap...\n");
 
   for (uint64_t index = 0; index < malloc_set.capacity; ++index) {
     crunch_block_t block = malloc_set.blocks[index];
@@ -72,23 +66,36 @@ void crunch_dump_heap()
     fclose(out_file);
   }
 
-  fprintf(stderr, "done.\n");
+  fprintf(stderr, "heap contents written to %s\n", getenv("CRUNCH_OUT"));
 }
 
 
 void *crunch_malloc(size_t size)
 {
+  pthread_mutex_lock(&malloc_mutex);
   void *ptr = malloc(size);
   crunch_set_put(&malloc_set, (uintptr_t)ptr, size);
+  pthread_mutex_unlock(&malloc_mutex);
   return ptr;
 }
 
 
 void crunch_free(void *ptr)
 {
+  pthread_mutex_lock(&malloc_mutex);
   crunch_set_delete(&malloc_set, (uintptr_t)ptr);
   free(ptr);
+  pthread_mutex_unlock(&malloc_mutex);
 }
+
+
+#define DYLD_INTERPOSE(_replacement,_replacee)                          \
+  __attribute__((used)) static struct{ const void* replacement; const void* replacee; } _interpose_##_replacee \
+  __attribute__ ((section ("__DATA,__interpose"))) = { (const void*)(unsigned long)&_replacement, (const void*)(unsigned long)&_replacee };
+
+
+DYLD_INTERPOSE(crunch_malloc, malloc);
+DYLD_INTERPOSE(crunch_free, free);
 
 
 #endif /* _CRUNCH_C_ */

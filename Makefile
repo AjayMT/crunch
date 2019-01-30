@@ -4,4 +4,4 @@ crunch.dylib: src/crunch.c src/crunch_set.c
 
 .PHONY: clean
 clean:
-	rm -f crunch.dylib
+	rm -fr crunch.dylib crunch_out test/a.out
