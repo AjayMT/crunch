@@ -17,6 +17,8 @@ import sys
 import os
 import shutil
 import subprocess
+import json
+import jinja2
 from docopt import docopt
 
 
@@ -26,6 +28,8 @@ dylib_name = 'crunch.dylib'
 out_var = 'CRUNCH_OUT'
 out_name = 'crunch_out'
 out_flag_name = 'CRUNCH_DUMP_HEAP'
+template_filename = 'template.html'
+report_filename = 'report.html'
 
 
 def main(args):
@@ -59,6 +63,45 @@ def main(args):
         stdin=stdin,
         stdout=stdout
     )
+
+    if not args['--no-dump']:
+        create_report(
+            ' '.join([args['<program>']] + args['<arguments>']),
+            out_path
+        )
+
+
+def create_report(exec_name, out_path):
+    template_path = os.path.join(sys.path[0], template_filename)
+    report_path = os.path.join(out_path, report_filename)
+
+    ptrs = os.listdir(out_path)
+    heap = {}
+    for ptr in ptrs:
+        with open(os.path.join(out_path, ptr), 'rb') as heap_data:
+            heap[ptr] = decode_bytes(heap_data.read())
+
+    with open(template_path) as template_file:
+        template = jinja2.Template(template_file.read())
+        with open(report_path, 'w') as report_file:
+            output = template.render(
+                exec_name=exec_name,
+                ptrs=ptrs,
+                heap_json=json.dumps(heap)
+            )
+            report_file.write(output)
+
+
+def decode_bytes(data):
+    # TODO find better way to decode bytes
+    out = ''
+    for b in data:
+        try:
+            out += bytes([b]).decode('utf-8')
+        except:
+            out += '?'
+
+    return out
 
 
 if __name__ == '__main__':

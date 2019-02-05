@@ -1,0 +1,133 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Crunch report</title>
+  </head>
+
+  <body>
+    <style type="text/css" media="screen">
+      body {
+          font-family: 'Helvetica Neue', sans-serif;
+          font-size: 12pt;
+      }
+
+      #container-out {
+          padding-top: 50px;
+          display: grid;
+          grid-template-columns: 1fr 6fr 1fr;
+          grid-gap: 10px;
+          grid-auto-rows: minmax(100px, auto);
+      }
+
+      #container-in {
+          padding-top: 30px;
+          display: grid;
+          grid-template-columns: 1fr 6fr;
+          grid-gap: 10px;
+          grid-auto-rows: minmax(100px, auto);
+      }
+
+      #ptrs {
+          font-family: 'Menlo', monospace;
+          font-size: 12pt;
+          text-align: left;
+      }
+
+      #heap-content-header {
+          font-family: 'Menlo', monospace;
+          font-size: 12pt;
+      }
+
+      a {
+          color: #442288;
+          text-decoration: none;
+          border-bottom-style: solid;
+          border-bottom-color: #aaa;
+          border-bottom-width: 1px;
+      }
+
+      a:hover {
+          border-bottom-color: #442288;
+      }
+
+      .ptrs-list {
+          padding-top: 20px;
+      }
+
+      .ptrs-list-ptr {
+          padding: 5px;
+      }
+
+      .heap-contents {
+          padding-left: 20px;
+          border-left-style: solid;
+          border-left-color: #442288;
+          border-left-width: 3px;
+      }
+
+      .report-header {
+          padding-bottom: 15px;
+          font-family: 'Menlo', monospace;
+          font-size: 14pt;
+          font-weight: bold;
+      }
+
+      pre {
+          font-family: 'Menlo', monospace;
+          font-size: 12pt;
+          white-space: pre-wrap;
+          padding: 10px;
+          border-radius: 3px;
+          border-style: solid;
+          border-color: #ccc;
+          border-width: 1px;
+      }
+    </style>
+    <div id="container-out">
+      <div></div>
+
+      <div>
+        <div>
+          <div class="report-header">crunch {{ exec_name }}</div>
+          <p>*insert stats here*</p>
+          <p>Peak memory usage: ????</p>
+        </div>
+
+        <div id="container-in">
+          <div id="ptrs">
+            <div>
+              <div class="ptrs-list">
+                {% for ptr in ptrs %}
+                <div class="ptrs-list-ptr"><a href="#heap" class="heap-link" id="{{ ptr }}">{{ ptr }}</a></div>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+
+          <div class="heap-contents">
+            <div>
+              <div id="heap-content-header">No address selected</div>
+              <pre id="heap-content-pre">...</pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div></div>
+    </div>
+
+    <script type="text/javascript">
+      let heap = {{ heap_json }}
+      let heapLinks = document.getElementsByClassName('heap-link')
+      for (let i = 0; i < heapLinks.length; ++i) {
+        heapLinks[i].addEventListener('click', () => {
+          document.getElementById('heap-content-header').innerHTML = heapLinks[i].id
+          document.getElementById('heap-content-pre').innerHTML = heap[heapLinks[i].id]
+        }, false)
+      }
+    </script>
+  </body>
+</html>
