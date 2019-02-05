@@ -92,8 +92,12 @@
       <div>
         <div>
           <div class="report-header">crunch {{ exec_name }}</div>
-          <p>*insert stats here*</p>
-          <p>Peak memory usage: ????</p>
+          <div class="stats">
+            <p>Calls to malloc: <strong>{{ malloc_count }}</strong></p>
+            <p>Calls to free: <strong>{{ free_count }}</strong></p>
+            <p>Peak memory usage: <strong>{{ max_usage }}</strong> bytes</p>
+            <p>Memory in use on exit: <strong>{{ current_usage }}</strong> bytes</p>
+          </div>
         </div>
 
         <div id="container-in">
@@ -124,8 +128,8 @@
       let heapLinks = document.getElementsByClassName('heap-link')
       for (let i = 0; i < heapLinks.length; ++i) {
         heapLinks[i].addEventListener('click', () => {
-          document.getElementById('heap-content-header').innerHTML = heapLinks[i].id
-          document.getElementById('heap-content-pre').innerHTML = heap[heapLinks[i].id]
+          document.getElementById('heap-content-header').innerHTML = `${heapLinks[i].id}: ${heap[heapLinks[i].id].size} bytes`
+          document.getElementById('heap-content-pre').innerHTML = heap[heapLinks[i].id].data
         }, false)
       }
     </script>

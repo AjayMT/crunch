@@ -26,7 +26,7 @@ typedef struct {
 
 void crunch_set_init(crunch_set_t*);
 void crunch_set_destroy(crunch_set_t*);
-void crunch_set_put(crunch_set_t*, uintptr_t, size_t);
+int crunch_set_put(crunch_set_t*, uintptr_t, size_t);
 size_t crunch_set_get(crunch_set_t, uintptr_t);
 void crunch_set_delete(crunch_set_t*, uintptr_t);
 static uint64_t crunch_hash_ptr(uint64_t, uintptr_t);
@@ -50,13 +50,13 @@ void crunch_set_destroy(crunch_set_t *set)
 }
 
 
-void crunch_set_put(crunch_set_t *set, uintptr_t ptr, size_t size)
+int crunch_set_put(crunch_set_t *set, uintptr_t ptr, size_t size)
 {
   if (
     set == NULL || set->blocks == NULL || set->capacity == 0
     || ptr == 0 || size == 0
     )
-    return;
+    return 0;
 
   if (set->count == set->capacity)
     crunch_set_grow(set);
@@ -69,6 +69,8 @@ void crunch_set_put(crunch_set_t *set, uintptr_t ptr, size_t size)
   block->ptr = ptr;
   block->size = size;
   ++(set->count);
+
+  return 1;
 }
 
 

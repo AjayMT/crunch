@@ -65,21 +65,27 @@ def main(args):
     )
 
     if not args['--no-dump']:
-        create_report(
+        report_path = create_report(
             ' '.join([args['<program>']] + args['<arguments>']),
             out_path
         )
+        sys.stderr.write(f'crunch report written to {report_path}\n')
 
 
 def create_report(exec_name, out_path):
     template_path = os.path.join(sys.path[0], template_filename)
     report_path = os.path.join(out_path, report_filename)
-
-    ptrs = os.listdir(out_path)
+    ptrs = [p for p in os.listdir(out_path) if p != 'stats']
     heap = {}
+    stats = []
+
+    with open(os.path.join(out_path, 'stats')) as stats_file:
+        stats = [int(stat) for stat in stats_file.read().splitlines()]
+
     for ptr in ptrs:
         with open(os.path.join(out_path, ptr), 'rb') as heap_data:
-            heap[ptr] = decode_bytes(heap_data.read())
+            data = heap_data.read()
+            heap[ptr] = {'data': decode_bytes(data), 'size': len(data)}
 
     with open(template_path) as template_file:
         template = jinja2.Template(template_file.read())
@@ -87,9 +93,14 @@ def create_report(exec_name, out_path):
             output = template.render(
                 exec_name=exec_name,
                 ptrs=ptrs,
-                heap_json=json.dumps(heap)
+                heap_json=json.dumps(heap),
+                malloc_count=stats[0],
+                free_count=stats[1],
+                max_usage=stats[2],
+                current_usage=stats[3]
             )
             report_file.write(output)
+            return report_path
 
 
 def decode_bytes(data):

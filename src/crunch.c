@@ -18,6 +18,10 @@ void *crunch_malloc(size_t);
 void crunch_free(void*);
 
 
+uint64_t malloc_count = 0;
+uint64_t free_count = 0;
+uint64_t max_usage = 0;
+uint64_t current_usage = 0;
 crunch_set_t malloc_set;
 pthread_mutex_t malloc_mutex;
 
@@ -49,14 +53,32 @@ void crunch_finish()
 
 void crunch_dump_heap()
 {
+  const char *CRUNCH_OUT = "CRUNCH_OUT";
+  const size_t fnamesize = 250;
   fprintf(stderr, "\ndumping heap...\n");
+
+  char stats_fname[fnamesize];
+  char stats_data[fnamesize];
+  sprintf(stats_fname, "%s/stats", getenv(CRUNCH_OUT));
+  sprintf(
+    stats_data,
+    "%llu\n%llu\n%llu\n%llu\nN",
+    malloc_count, free_count, max_usage, current_usage
+    );
+
+  FILE *stats_file = fopen(stats_fname, "w");
+  for (unsigned int i = 0; i < fnamesize; ++i) {
+    if (stats_data[i] == 'N') break;
+    fputc(stats_data[i], stats_file);
+  }
+  fclose(stats_file);
 
   for (uint64_t index = 0; index < malloc_set.capacity; ++index) {
     crunch_block_t block = malloc_set.blocks[index];
     if (block.ptr == 0) continue;
 
-    char fname[250];
-    sprintf(fname, "%s/%p", getenv("CRUNCH_OUT"), (void *)block.ptr);
+    char fname[fnamesize];
+    sprintf(fname, "%s/%p", getenv(CRUNCH_OUT), (void *)block.ptr);
     FILE *out_file = fopen(fname, "w");
 
     unsigned char *data = (unsigned char *)block.ptr;
@@ -66,7 +88,7 @@ void crunch_dump_heap()
     fclose(out_file);
   }
 
-  fprintf(stderr, "heap contents written to %s\n", getenv("CRUNCH_OUT"));
+  fprintf(stderr, "heap contents written to %s\n", getenv(CRUNCH_OUT));
 }
 
 
@@ -74,7 +96,13 @@ void *crunch_malloc(size_t size)
 {
   pthread_mutex_lock(&malloc_mutex);
   void *ptr = malloc(size);
-  crunch_set_put(&malloc_set, (uintptr_t)ptr, size);
+
+  if (crunch_set_put(&malloc_set, (uintptr_t)ptr, size)) {
+    ++malloc_count;
+    current_usage += size;
+    if (current_usage > max_usage) max_usage = current_usage;
+  }
+
   pthread_mutex_unlock(&malloc_mutex);
   return ptr;
 }
@@ -83,8 +111,16 @@ void *crunch_malloc(size_t size)
 void crunch_free(void *ptr)
 {
   pthread_mutex_lock(&malloc_mutex);
+
+  size_t size = crunch_set_get(malloc_set, (uintptr_t)ptr);
+  if (size) {
+    ++free_count;
+    current_usage -= size;
+  }
+
   crunch_set_delete(&malloc_set, (uintptr_t)ptr);
   free(ptr);
+
   pthread_mutex_unlock(&malloc_mutex);
 }
 
