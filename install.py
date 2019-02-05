@@ -54,6 +54,7 @@ def install(install_prefix, symlink_prefix):
 
     print('Copying files... ', end='', flush=True)
     shutil.copy2(os.path.join(sys.path[0], crunch.dylib_name), install_prefix)
+    shutil.copy2(os.path.join(sys.path[0], crunch.template_filename), install_prefix)
     exec_path = shutil.copy2(os.path.join(sys.path[0], 'crunch.py'), install_prefix)
     print('done.')
 
