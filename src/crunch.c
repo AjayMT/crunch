@@ -7,6 +7,8 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <pthread.h>
+#include <signal.h>
+#include <string.h>
 
 #include "crunch_set.c"
 
@@ -14,6 +16,7 @@
 void crunch_init() __attribute__((constructor));
 void crunch_finish() __attribute__((destructor));
 void crunch_dump_heap();
+void crunch_sigsegv_handler(int, siginfo_t*, void*);
 void *crunch_malloc(size_t);
 void crunch_free(void*);
 
@@ -30,6 +33,12 @@ void crunch_init()
 {
   crunch_set_init(&malloc_set);
   pthread_mutex_init(&malloc_mutex, NULL);
+
+  struct sigaction action;
+  memset(&action, 0, sizeof(struct sigaction));
+  action.sa_flags = SA_SIGINFO;
+  action.sa_sigaction = crunch_sigsegv_handler;
+  sigaction(SIGSEGV, &action, NULL);
 }
 
 
@@ -89,6 +98,34 @@ void crunch_dump_heap()
   }
 
   fprintf(stderr, "heap contents written to %s\n", getenv(CRUNCH_OUT));
+}
+
+
+void crunch_sigsegv_handler(int signum, siginfo_t *info, void *context)
+{
+  const size_t fnamesize = 250;
+  fprintf(stderr, "\ncrunch SIGSEGV handler: illegal access: address %p\n",
+          info->si_addr);
+
+  if (*getenv("CRUNCH_DUMP_HEAP") == 'y') {
+    fprintf(stderr, "\nwriting signal info...\n");
+
+    char fname[fnamesize];
+    sprintf(fname, "%s/fatal", getenv("CRUNCH_OUT"));
+    char data[fnamesize];
+    sprintf(data, "%p\nN", info->si_addr);
+
+    FILE *siginfo_file = fopen(fname, "w");
+    for (unsigned int i = 0; i < fnamesize; ++i) {
+      if (data[i] == 'N') break;
+      fputc(data[i], siginfo_file);
+    }
+    fclose(siginfo_file);
+
+    fprintf(stderr, "signal info written to %s\n", fname);
+  }
+
+  exit(1);
 }
 
 

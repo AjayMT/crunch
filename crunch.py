@@ -75,9 +75,15 @@ def main(args):
 def create_report(exec_name, out_path):
     template_path = os.path.join(sys.path[0], template_filename)
     report_path = os.path.join(out_path, report_filename)
-    ptrs = [p for p in os.listdir(out_path) if p != 'stats']
+    ptrs = [p for p in os.listdir(out_path) if p not in ['stats', 'fatal']]
     heap = {}
     stats = []
+    fatal = False
+    fatal_msg = ''
+
+    with open(os.path.join(out_path, 'fatal')) as fatal_file:
+        fatal = True
+        fatal_msg = f'SIGSEGV: illegal access: address <strong>{fatal_file.read()}</strong>'
 
     with open(os.path.join(out_path, 'stats')) as stats_file:
         stats = [int(stat) for stat in stats_file.read().splitlines()]
@@ -97,7 +103,9 @@ def create_report(exec_name, out_path):
                 malloc_count=stats[0],
                 free_count=stats[1],
                 max_usage=stats[2],
-                current_usage=stats[3]
+                current_usage=stats[3],
+                fatal=fatal,
+                fatal_msg=fatal_msg
             )
             report_file.write(output)
             return report_path
