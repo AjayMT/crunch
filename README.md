@@ -8,7 +8,8 @@ Memory profiling tool for macOS, inspired by valgrind's memcheck.
 ## Installation
 You will need:
 - Python 3
-- [docopt](http://docopt.org)
+- [docopt](http://docopt.org) (`pip3 install docopt`)
+- [jinja2](http://jinja.pocoo.org/) (`pip3 install jinja2`)
 - GNU make
 - gcc
 
