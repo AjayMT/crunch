@@ -80,10 +80,12 @@ def create_report(exec_name, out_path):
     stats = []
     fatal = False
     fatal_msg = ''
+    fatal_path = os.path.join(out_path, 'fatal')
 
-    with open(os.path.join(out_path, 'fatal')) as fatal_file:
-        fatal = True
-        fatal_msg = f'SIGSEGV: illegal access: address <strong>{fatal_file.read()}</strong>'
+    if os.path.exists(fatal_path):
+        with open(fatal_path) as fatal_file:
+            fatal = True
+            fatal_msg = f'SIGSEGV: illegal access: address <strong>{fatal_file.read()}</strong>'
 
     with open(os.path.join(out_path, 'stats')) as stats_file:
         stats = [int(stat) for stat in stats_file.read().splitlines()]

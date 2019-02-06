@@ -46,7 +46,10 @@ void crunch_set_destroy(crunch_set_t *set)
 {
   set->capacity = 0;
   set->count = 0;
-  free(set->blocks);
+  if (set->blocks != NULL) {
+    free(set->blocks);
+    set->blocks = NULL;
+  }
 }
 
 
