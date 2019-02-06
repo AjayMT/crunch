@@ -16,6 +16,7 @@ You will need:
 ```sh
 git clone https://github.com/AjayMT/crunch.git
 cd crunch
+pip3 install docopt jinja2
 python3 install.py
 ```
 

@@ -16,11 +16,15 @@
 void crunch_init() __attribute__((constructor));
 void crunch_finish() __attribute__((destructor));
 void crunch_dump_heap();
+void crunch_dump_fatal(char*);
 void crunch_sigsegv_handler(int, siginfo_t*, void*);
+void crunch_invalid_free_handler(uintptr_t);
 void *crunch_malloc(size_t);
 void crunch_free(void*);
 
 
+const size_t max_msg_size = 250;
+const char msg_terminator = '\t';
 uint64_t malloc_count = 0;
 uint64_t free_count = 0;
 uint64_t max_usage = 0;
@@ -52,7 +56,7 @@ void crunch_finish()
     fprintf(stderr, "  %p : %lu bytes\n", (void *)block.ptr, block.size);
   }
 
-  if (*getenv("CRUNCH_DUMP_HEAP") == 'y')
+  if (*getenv("CRUNCH_REPORT") == 'y')
     crunch_dump_heap();
 
   crunch_set_destroy(&malloc_set);
@@ -63,31 +67,32 @@ void crunch_finish()
 void crunch_dump_heap()
 {
   const char *CRUNCH_OUT = "CRUNCH_OUT";
-  const size_t fnamesize = 250;
   fprintf(stderr, "\ndumping heap...\n");
 
-  char stats_fname[fnamesize];
-  char stats_data[fnamesize];
+  char stats_fname[max_msg_size];
+  char stats_data[max_msg_size];
   sprintf(stats_fname, "%s/stats", getenv(CRUNCH_OUT));
   sprintf(
     stats_data,
-    "%llu\n%llu\n%llu\n%llu\nN",
-    malloc_count, free_count, max_usage, current_usage
+    "%llu\n%llu\n%llu\n%llu\n%c",
+    malloc_count, free_count, max_usage, current_usage, msg_terminator
     );
 
   FILE *stats_file = fopen(stats_fname, "w");
-  for (unsigned int i = 0; i < fnamesize; ++i) {
-    if (stats_data[i] == 'N') break;
-    fputc(stats_data[i], stats_file);
-  }
+  for (
+    unsigned int i = 0;
+    i < max_msg_size && stats_data[i] != msg_terminator;
+    ++i
+    ) fputc(stats_data[i], stats_file);
+
   fclose(stats_file);
 
   for (uint64_t index = 0; index < malloc_set.capacity; ++index) {
     crunch_block_t block = malloc_set.blocks[index];
     if (block.ptr == 0) continue;
 
-    char fname[fnamesize];
-    sprintf(fname, "%s/%p", getenv(CRUNCH_OUT), (void *)block.ptr);
+    char fname[max_msg_size];
+    sprintf(fname, "%s/heap/%p", getenv(CRUNCH_OUT), (void *)block.ptr);
     FILE *out_file = fopen(fname, "w");
 
     unsigned char *data = (unsigned char *)block.ptr;
@@ -97,32 +102,53 @@ void crunch_dump_heap()
     fclose(out_file);
   }
 
-  fprintf(stderr, "heap contents written to %s\n", getenv(CRUNCH_OUT));
+  fprintf(stderr, "heap contents written to %s/heap\n", getenv(CRUNCH_OUT));
+}
+
+
+void crunch_dump_fatal(char *buf)
+{
+  fprintf(stderr, "\nwriting crash info...\n");
+
+  char fname[max_msg_size];
+  sprintf(fname, "%s/fatal", getenv("CRUNCH_OUT"));
+
+  FILE *fatal_file = fopen(fname, "w");
+  for (
+    unsigned int i = 0;
+    i < max_msg_size && buf[i] != msg_terminator;
+    ++i
+    ) fputc(buf[i], fatal_file);
+
+  fclose(fatal_file);
+
+  fprintf(stderr, "crash info written to %s\n", fname);
 }
 
 
 void crunch_sigsegv_handler(int signum, siginfo_t *info, void *context)
 {
-  const size_t fnamesize = 250;
-  fprintf(stderr, "\ncrunch SIGSEGV handler: illegal access: address %p\n",
+  fprintf(stderr, "\ncrunch: SIGSEGV illegal access: address %p\n",
           info->si_addr);
 
-  if (*getenv("CRUNCH_DUMP_HEAP") == 'y') {
-    fprintf(stderr, "\nwriting signal info...\n");
+  if (*getenv("CRUNCH_REPORT") == 'y') {
+    char msg[max_msg_size];
+    sprintf(msg, "SIGSEGV illegal access: address %p\n%c", info->si_addr, msg_terminator);
+    crunch_dump_fatal(msg);
+  }
 
-    char fname[fnamesize];
-    sprintf(fname, "%s/fatal", getenv("CRUNCH_OUT"));
-    char data[fnamesize];
-    sprintf(data, "%p\nN", info->si_addr);
+  exit(1);
+}
 
-    FILE *siginfo_file = fopen(fname, "w");
-    for (unsigned int i = 0; i < fnamesize; ++i) {
-      if (data[i] == 'N') break;
-      fputc(data[i], siginfo_file);
-    }
-    fclose(siginfo_file);
 
-    fprintf(stderr, "signal info written to %s\n", fname);
+void crunch_invalid_free_handler(uintptr_t ptr)
+{
+  fprintf(stderr, "\ncrunch: pointer being freed was not allocated: %p\n", (void *)ptr);
+
+  if (*getenv("CRUNCH_REPORT") == 'y') {
+    char msg[max_msg_size];
+    sprintf(msg, "pointer being freed was not allocated: %p\n%c", (void *)ptr, msg_terminator);
+    crunch_dump_fatal(msg);
   }
 
   exit(1);
@@ -153,6 +179,9 @@ void crunch_free(void *ptr)
   if (size) {
     ++free_count;
     current_usage -= size;
+  } else {
+    // TODO
+    // crunch_invalid_free_handler((uintptr_t)ptr);
   }
 
   crunch_set_delete(&malloc_set, (uintptr_t)ptr);
