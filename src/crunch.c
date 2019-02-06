@@ -17,7 +17,7 @@ void crunch_init() __attribute__((constructor));
 void crunch_finish() __attribute__((destructor));
 void crunch_dump_heap();
 void crunch_dump_fatal(char*);
-void crunch_sigsegv_handler(int, siginfo_t*, void*);
+void crunch_signal_handler(int, siginfo_t*, void*);
 void crunch_invalid_free_handler(uintptr_t);
 void *crunch_malloc(size_t);
 void crunch_free(void*);
@@ -38,11 +38,17 @@ void crunch_init()
   crunch_set_init(&malloc_set);
   pthread_mutex_init(&malloc_mutex, NULL);
 
-  struct sigaction action;
-  memset(&action, 0, sizeof(struct sigaction));
-  action.sa_flags = SA_SIGINFO;
-  action.sa_sigaction = crunch_sigsegv_handler;
-  sigaction(SIGSEGV, &action, NULL);
+  struct sigaction action_sigsegv;
+  memset(&action_sigsegv, 0, sizeof(struct sigaction));
+  action_sigsegv.sa_flags = SA_SIGINFO;
+  action_sigsegv.sa_sigaction = crunch_signal_handler;
+  sigaction(SIGSEGV, &action_sigsegv, NULL);
+
+  struct sigaction action_sigabrt;
+  memset(&action_sigabrt, 0, sizeof(struct sigaction));
+  action_sigabrt.sa_flags = SA_SIGINFO;
+  action_sigabrt.sa_sigaction = crunch_signal_handler;
+  sigaction(SIGABRT, &action_sigabrt, NULL);
 }
 
 
@@ -126,14 +132,21 @@ void crunch_dump_fatal(char *buf)
 }
 
 
-void crunch_sigsegv_handler(int signum, siginfo_t *info, void *context)
+void crunch_signal_handler(int signum, siginfo_t *info, void *context)
 {
-  fprintf(stderr, "\ncrunch: SIGSEGV illegal access: address %p\n",
-          info->si_addr);
+  char sig_msg[max_msg_size];
+  switch (signum) {
+  case SIGSEGV:
+    strcpy(sig_msg, "SIGSEGV illegal access"); break;
+  case SIGABRT:
+    strcpy(sig_msg, "SIGABRT abort");
+  }
+
+  fprintf(stderr, "\ncrunch: %s: address %p\n", sig_msg, info->si_addr);
 
   if (*getenv("CRUNCH_REPORT") == 'y') {
     char msg[max_msg_size];
-    sprintf(msg, "SIGSEGV illegal access: address %p\n%c", info->si_addr, msg_terminator);
+    sprintf(msg, "%s: address %p\n%c", sig_msg, info->si_addr, msg_terminator);
     crunch_dump_fatal(msg);
   }
 
