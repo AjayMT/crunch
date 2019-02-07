@@ -34,7 +34,7 @@ crunch will execute `program` with the specified arguments. `program` runs as no
 - signal handlers are attached to the following signals:
   - SIGSEGV and SIGABRT: crunch will report an abnormal (fatal) exit and record the offending memory address (i.e the pointer that caused the segfault/abort)
 
-Upon exit, crunch will create a `crunch_out` directory and record its results there.
+Upon exit, crunch will create a `crunch_out` directory and store its results there.
 
 ```sh
 crunch_out
@@ -45,7 +45,7 @@ crunch_out
 └── stats
 ```
 
-Each file in the `heap` directory stores the contents of a single allocation -- only un-freed allocations are recorded. `report.html` reports all of the information recorded by crunch.
+Each file in the `heap` directory stores the contents of a single allocation remaining on the heap. `report.html` reports all of the information recorded by crunch.
 
 **Example usage:**
 
@@ -84,7 +84,7 @@ crunch report written to /tmp/crunch_out/report.html
 ### planned features
 - virtualize resources for better instrumentation?
 - track memory usage over time
-- view heap snapshots
+- view heap snapshots at any point of time during execution
 
 ### misc
 - create a Homebrew formula
