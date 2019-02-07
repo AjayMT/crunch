@@ -3,8 +3,6 @@
 
 Memory profiling tool for macOS, inspired by valgrind's memcheck.
 
-**Note:** This is pre-alpha software and is not ready for use yet!
-
 ## Installation
 You will need:
 - Python 3
@@ -22,14 +20,72 @@ python3 install.py
 
 The install script (`install.py`) will guide you through the installation process.
 
-Eventually, I will package this into a Homebrew-installable tool.
+## Usage and mechanism
+```
+crunch [options] <program> [<arguments>...]
+```
+
+(Running `crunch --help` will print a help message with a description of all the options.)
+
+crunch will execute `program` with the specified arguments. `program` runs as normal, except:
+- `malloc` and `free` are 'overridden' during runtime (see [DYLD_INTERPOSE](https://opensource.apple.com/source/dyld/dyld-97.1/include/mach-o/dyld-interposing.h.auto.html)) and wrapped with extra instrumentation
+  - allocations are tracked as pointer+size pairs in a hash table. Making malloc and free slower and/or more expensive is pretty much unavoidable, but a better hash table implementation will likely improve performance significantly (see `src/crunch_set.c`)
+  - as of now crunch also synchronizes calls to malloc and free, which severely impacts concurrent programs. There is probably a better way to approach multi-threading than wrapping malloc and free in a mutex
+- signal handlers are attached to the following signals:
+  - SIGSEGV and SIGABRT: crunch will report an abnormal (fatal) exit and record the offending memory address (i.e the pointer that caused the segfault/abort)
+
+Upon exit, crunch will create a `crunch_out` directory and record its results there.
+
+```sh
+crunch_out
+├── fatal # this file only exists if the program exits abnormally
+├── heap # this folder stores the contents of the heap upon exit, each file is an address
+│   └── 0x7fa45ec02af0
+├── report.html
+└── stats
+```
+
+Each file in the `heap` directory stores the contents of a single allocation -- only un-freed allocations are recorded. `report.html` reports all of the information recorded by crunch.
+
+**Example usage:**
+
+```c
+// /tmp/program.c
+#include <stdlib.h>
+
+int main(int argc, char *argv[])
+{
+  char *buf = malloc(10);
+  buf[0xffffff] = 'a';
+  free(buf);
+  return 0;
+}
+```
+
+```
+$ cc program.c
+$ crunch a.out
+
+crunch: SIGSEGV illegal access: address 0x7f828b402aef
+
+writing crash info...
+crash info written to /tmp/crunch_out/fatal
+
+=== crunch ===
+1 remaining heap allocations
+  0x7f828a402af0 : 10 bytes
+
+dumping heap...
+heap contents written to /tmp/crunch_out/heap
+crunch report written to /tmp/crunch_out/report.html
+```
 
 ## Roadmap
-### mechanism
-- replace malloc/free and other memory management functions
-- virtualize resources?
-
 ### planned features
-- **high priority**: detect memory leaks
-- track memory usage
+- virtualize resources for better instrumentation?
+- track memory usage over time
 - view heap snapshots
+
+### misc
+- create a Homebrew formula
+- measure performance
